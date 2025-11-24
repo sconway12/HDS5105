@@ -13,8 +13,9 @@ if (!require("DynNom")) install.packages("DynNom")
 if (!require("shinydashboard")) install.packages("shinydashboard")
 library(tidyverse)
 library(shiny)
+library(readr)
 
-
+DIG_1 <- read_csv("data/DIG-1.csv")
 
 
 DIG_1 <- DIG_1 %>%
@@ -90,4 +91,6 @@ server <- function(input, output) {
 observe({
   print(nrow(patients_subset()))
 })
+
+shinyApp(ui = ui, server = server)
 
