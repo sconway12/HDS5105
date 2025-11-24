@@ -55,7 +55,9 @@ ui <- fluidPage(
 
         # Show a plot of the generated distribution
         mainPanel(
-           plotOutput("plot1")
+           plotOutput("plot1"),
+           h4("Summary table of filtered data"),
+           tableOutput("summary_table_filt_data")
         )
     )
 )
@@ -84,6 +86,30 @@ server <- function(input, output) {
         y = "Systolic Blood Pressure"
       ) +
       theme_minimal()
+  })
+  
+  summary_table_filt_data <- reactive({
+    df <- patients_subset()
+    tibble(
+      `Number of patients` = nrow(df),
+      `Deaths (%)` = mean(df$DEATH=="Death", na.rm=TRUE)*100,
+      `Hospitalisations (%)` = mean(df$HOSP=="Hospitalisation", na.rm=TRUE)*100,
+      `Mean Age` = mean(df$AGE, na.rm=TRUE),
+      `Mean Systolic BP` = mean(df$SYSBP, na.rm=TRUE),
+      `Mean Diastolic BP` = mean(df$DIABP, na.rm=TRUE),
+    )
+  })
+    
+  
+  output$summary_table_filt_data <- renderTable({
+    summary_table_filt_data() %>%
+      mutate(
+        `Deaths (%)`           = round(`Deaths (%)`, 2),
+        `Hospitalisations (%)` = round(`Hospitalisations (%)`, 2),
+        `Mean Age`             = round(`Mean Age`, 0),
+        `Mean Systolic BP`     = round(`Mean Systolic BP`, 2),
+        `Mean Diastolic BP`    = round(`Mean Diastolic BP`, 2)
+      )
   })
   
 
