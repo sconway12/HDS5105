@@ -11,9 +11,11 @@ if (!require("shiny")) install.packages("shiny")
 if (!require("tidyverse")) install.packages("tidyverse")
 if (!require("DynNom")) install.packages("DynNom")
 if (!require("shinydashboard")) install.packages("shinydashboard")
+if (!require("plotly")) install.packages("plotly")
 library(tidyverse)
 library(shiny)
 library(readr)
+library(plotly)
 
 #DIG_1 <- read_csv("data/DIG-1.csv")
 DIG_1 <- read_csv("DIG-1.csv")
@@ -60,7 +62,8 @@ ui <- fluidPage(
            plotOutput("plot2"),
            
            h4("Summary table of filtered data"),
-           tableOutput("summary_table_filt_data")
+           tableOutput("summary_table_filt_data"),
+           plotlyOutput("plot3")
         )
     )
 )
@@ -79,9 +82,16 @@ server <- function(input, output) {
       )
   })
   
+  patients_subset_all_treatments <- reactive({
+    DIG_1 %>%
+      filter(
+        SEX == input$SEX,
+        RACE == input$RACE,
+        AGE >= input$AGE[1],
+        AGE <= input$AGE[2],
+      )
+  })
   
-
-
   output$plot1 <- renderPlot({
     ggplot(patients_subset(), aes(x = DIABP, y = SYSBP)) +
       geom_point() +
@@ -142,6 +152,35 @@ server <- function(input, output) {
       )
     
   })
+  
+  mortality_df <- reactive({patients_subset_all_treatments()%>%mutate(num_of_deaths = ifelse(DEATH == "Death" | DEATH == 1, 1, 0))%>%
+      group_by(TRTMT)%>%
+      summarise(
+        deaths = sum(num_of_deaths, na.rm=TRUE),
+        total = n(),
+        mortality_rate = deaths/total
+      )})
+  
+  output$plot3 <- renderPlotly(
+    {
+      plot_ly(
+        data=mortality_df(),
+        x=~TRTMT,
+        y=~mortality_rate,
+        type="bar",
+        marker=list(color=c("#bdf2c0", "#bdc3f2")),
+        text = ~paste0("Deaths: ", deaths, "/", total,
+                       "<br>Rate: ", round(mortality_rate*100, 1), "%"),
+        hoverinfo = "text"
+      ) %>%
+        layout(
+          title = "Overall Mortality by Treatment Group",
+          xaxis = list(title = "Treatment Group"),
+          yaxis = list(title = "Mortality Rate", tickformat = ".1%"),
+          showlegend = FALSE
+        )
+    }
+  )
   
   
 
