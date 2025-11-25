@@ -15,7 +15,8 @@ library(tidyverse)
 library(shiny)
 library(readr)
 
-DIG_1 <- read_csv("data/DIG-1.csv")
+#DIG_1 <- read_csv("data/DIG-1.csv")
+DIG_1 <- read_csv("DIG-1.csv")
 
 
 DIG_1 <- DIG_1 %>%
@@ -56,6 +57,8 @@ ui <- fluidPage(
         # Show a plot of the generated distribution
         mainPanel(
            plotOutput("plot1"),
+           plotOutput("plot2"),
+           
            h4("Summary table of filtered data"),
            tableOutput("summary_table_filt_data")
         )
@@ -75,6 +78,8 @@ server <- function(input, output) {
         TRTMT == input$TRTMT
       )
   })
+  
+  
 
 
   output$plot1 <- renderPlot({
@@ -86,6 +91,31 @@ server <- function(input, output) {
         y = "Systolic Blood Pressure"
       ) +
       theme_minimal()
+  })
+  
+  patientsubset2 <- reactive({
+    DIG_1 %>%
+      filter(
+        SEX == input$SEX,
+        RACE == input$RACE,
+        AGE >= input$AGE[1],
+        AGE <= input$AGE[2],
+        TRTMT == input$TRTMT ) %>%
+      count(CVD, DEATH)
+  })
+  
+  output$plot2 <- renderPlot({
+    patientsubset2() %>%
+      ggplot(aes(x = CVD, y = DEATH, fill = n)) +
+      geom_tile() +
+      scale_fill_gradient(low = "skyblue", high = "navy") +
+      geom_text(aes(label = n), color = "white", size = 5) +  # showing counts here
+      labs(
+        title = "Counts of Mortality Overall by CVD Status",
+        x = "CVD Status",
+        y = "Death Status",
+        fill = "Count"
+        ) 
   })
   
   summary_table_filt_data <- reactive({
@@ -110,13 +140,17 @@ server <- function(input, output) {
         `Mean Systolic BP`     = round(`Mean Systolic BP`, 2),
         `Mean Diastolic BP`    = round(`Mean Diastolic BP`, 2)
       )
+    
   })
+  
   
 
 }
 observe({
   print(nrow(patients_subset()))
 })
+
+
 
 shinyApp(ui = ui, server = server)
 
