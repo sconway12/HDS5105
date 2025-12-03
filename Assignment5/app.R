@@ -35,6 +35,8 @@ DIG_1 <- DIG_1 %>%
   )
   )
 
+# vector of numeric column names for final graph
+numeric_vars <- names(DIG_1)[sapply(DIG_1, is.numeric)]
 
 
 # Define UI for application that draws a histogram
@@ -53,7 +55,13 @@ ui <- fluidPage(
             radioButtons(inputId = "TRTMT", label = "Select Treatment Group:",
                          choices = c("Placebo", "Treatment")),
             sliderInput("AGE", "Select Patient Age Range:",
-                    min = 21, max = 90, value = c(30,60))
+                    min = 21, max = 90, value = c(30,60)),
+          
+          selectInput(inputId = "x_var", label = "X-axis variable:", 
+                      choices = numeric_vars, selected = "AGE"),
+          selectInput(inputId = "y_var", "Y-axis variable:", 
+                      choices = numeric_vars, selected = "SYSBP")
+          
         ),
 
         # Show a plot of the generated distribution
@@ -63,7 +71,10 @@ ui <- fluidPage(
            
            h4("Summary table of filtered data"),
            tableOutput("summary_table_filt_data"),
-           plotlyOutput("plot3")
+           plotlyOutput("plot3"),
+           
+           h4("Comparison of any two numeric variables"),
+           plotlyOutput("plot_any_two")
         )
     )
 )
@@ -181,6 +192,21 @@ server <- function(input, output) {
         )
     }
   )
+  
+  output$plot_any_two <- renderPlotly({
+    req(input$x_var, input$y_var)
+    
+    p <- ggplot(patients_subset(), aes_string(x = input$x_var, input$y_var)) +
+      geom_point(alpha = 0.7) +
+      labs(
+        title = paste("Relationship between", input$y_var, "and", input$x_var),
+        x = input$x_var,
+        y = input$y_var
+      ) +
+      theme_minimal()
+      
+    ggplotly(p)
+  })
   
   
 
